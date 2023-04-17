@@ -86,11 +86,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GizmoController.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="Components\AxisMovement.cs" />
     <Compile Include="Components\Clickable.cs" />
     <Compile Include="Components\Collapsible.cs" />
     <Compile Include="Components\DragWindowController.cs" />
+    <Compile Include="Components\PositionGizmo.cs" />
     <Compile Include="Components\ResizeWindowController.cs" />
     <Compile Include="Components\ScrollBox.cs" />
     <Compile Include="Components\Window.cs" />

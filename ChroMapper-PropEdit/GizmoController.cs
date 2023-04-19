@@ -8,19 +8,25 @@ using Beatmap.Base;
 using Beatmap.Containers;
 using Beatmap.Enums;
 using Beatmap.Helper;
+using Beatmap.Shared;
+
+using SimpleJSON;
 
 using ChroMapper_PropEdit.Components;
 
 namespace ChroMapper_PropEdit {
 
 public class GizmoController {
-	public GameObject? position_gizmo_go;
 	public PositionGizmo? position_gizmo;
+	public PositionGizmo? scale_gizmo;
 	
 	public InputAction translate_keybind;
+	public InputAction expand_keybind;
 	
 	public List<BaseGrid> editing = new List<BaseGrid>();
 	public List<DragData> queued = new List<DragData>();
+	
+	//public Bounds? selected_area;
 	
 	public GizmoController() {
 		var map = CMInputCallbackInstaller.InputInstance.asset.actionMaps
@@ -33,17 +39,33 @@ public class GizmoController {
 			.With("Button", "<Keyboard>/t");
 		translate_keybind.performed += ToggleTranslate;
 		translate_keybind.Disable();
+		expand_keybind = map.AddAction("Expand Gizmo", type: InputActionType.Button);
+		expand_keybind.AddCompositeBinding("ButtonWithOneModifier")
+			.With("Modifier", "<Keyboard>/ctrl")
+			.With("Button", "<Keyboard>/e");
+		expand_keybind.performed += ToggleExpand;
+		expand_keybind.Disable();
 		map.Enable();
 	}
 	
 	public void Init() {
-		position_gizmo_go = new GameObject("Position Gizmo");
+		var position_gizmo_go = new GameObject("Position Gizmo");
 		position_gizmo_go.SetActive(false);
 		position_gizmo = position_gizmo_go.AddComponent<PositionGizmo>();
+		position_gizmo.handle_shape = PrimitiveType.Cylinder;
 		
-		position_gizmo.onDragBegin += OnTranslateBegin;
+		position_gizmo.onDragBegin += QueueEditing;
 		position_gizmo.onDragMove  += OnTranslateMove;
 		position_gizmo.onDragEnd   += OnTranslateEnd;
+		
+		var scale_gizmo_go = new GameObject("Scale Gizmo");
+		scale_gizmo_go.SetActive(false);
+		scale_gizmo = scale_gizmo_go.AddComponent<PositionGizmo>();
+		scale_gizmo.handle_shape = PrimitiveType.Cube;
+		
+		scale_gizmo.onDragBegin += QueueEditing;
+		scale_gizmo.onDragMove  += OnScaleMove;
+		scale_gizmo.onDragEnd   += OnScaleEnd;
 		
 		SelectionController.SelectionChangedEvent += () =>  UpdateSelection();
 		BeatmapActionContainer.ActionCreatedEvent += (_) => UpdateSelection();
@@ -59,39 +81,55 @@ public class GizmoController {
 	
 	public void UpdateSelection() {
 		editing = SelectionController.SelectedObjects.Where(o => o is BaseGrid).Select(it => (BaseGrid)it).ToList();
-		if (position_gizmo_go!.activeSelf && editing.Count() > 0) {
-			ShowTranslate();
+		if (editing.Count() == 0) {
+			position_gizmo?.gameObject.SetActive(false);
+			scale_gizmo?.gameObject.SetActive(false);
 		}
-		else {
-			position_gizmo_go.SetActive(false);
-		}
+		QueueEditing();
 	}
 	
 	void ToggleTranslate(InputAction.CallbackContext _) {
-		if (!position_gizmo_go!.activeSelf && editing.Count() > 0) {
-			ShowTranslate();
+		if (!Input.GetKey(KeyCode.LeftCtrl) && !Input.GetKey(KeyCode.RightCtrl)) {
+			return;
+		}
+		if (!position_gizmo!.gameObject.activeSelf && editing.Count() > 0) {
+			ShowGizmo(position_gizmo);
 		}
 		else {
-			position_gizmo_go.SetActive(false);
+			position_gizmo.gameObject.SetActive(false);
+		}
+	}
+	void ToggleExpand(InputAction.CallbackContext _) {
+		if (!Input.GetKey(KeyCode.LeftCtrl) && !Input.GetKey(KeyCode.RightCtrl)) {
+			return;
+		}
+		if (!scale_gizmo!.gameObject.activeSelf && editing.Count() > 0) {
+			ShowGizmo(scale_gizmo);
+		}
+		else {
+			scale_gizmo.gameObject.SetActive(false);
 		}
 	}
 	
-	void ShowTranslate() {
-		position_gizmo_go!.SetActive(true);
-		var o = editing.First();
+	void ShowGizmo(PositionGizmo gizmo) {
+		gizmo.gameObject.SetActive(true);
+		var f = queued.First();
 		
-		var collection = BeatmapObjectContainerCollection.GetCollectionForType(o.ObjectType);
-		collection.LoadedContainers.TryGetValue(o, out var container);
+		var selected_area = new Bounds(f.con.gameObject.transform.position, Vector3.zero);
+		
+		foreach (var d in queued) {
+			selected_area.Encapsulate(d.con.gameObject.transform.position);
+		}
 		
 		var atsc = UnityEngine.Object.FindObjectOfType<AudioTimeSyncController>();
-		position_gizmo_go.transform.parent = container.gameObject.transform.parent;
-		position_gizmo_go.transform.position = container.gameObject.transform.position;
+		gizmo.gameObject.transform.parent = f.con.gameObject.transform.parent;
+		gizmo.gameObject.transform.position = selected_area.center;
 		// Window snapping be silly
-		position_gizmo_go.transform.rotation = Quaternion.Euler(0, container.gameObject.transform.rotation.eulerAngles.y, 0);
+		gizmo.gameObject.transform.rotation = Quaternion.Euler(0, f.con.gameObject.transform.rotation.eulerAngles.y, 0);
 		//position_gizmo.ball_visible = (editing.Count() > 1);
 	}
 	
-	void OnTranslateBegin() {
+	void QueueEditing() {
 		queued = editing.Select(o => {
 			var collection = BeatmapObjectContainerCollection.GetCollectionForType(o.ObjectType);
 			
@@ -104,7 +142,7 @@ public class GizmoController {
 		}).ToList();
 	}
 	
-	void OnTranslateMove(Vector3 delta) {
+	void OnTranslateMove(Vector3 delta, Axis axis) {
 		foreach (var d in queued) {
 			var pos = new Vector3(
 				d.o.CustomCoordinate?.AsArray?[0] ?? d.o.PosX - 2,
@@ -115,9 +153,8 @@ public class GizmoController {
 			d.o.Time = pos.z / EditorScaleController.EditorScale;
 			d.con?.UpdateGridPosition();
 		}
-		position_gizmo_go!.transform.localPosition += delta;
+		position_gizmo!.gameObject.transform.localPosition += delta;
 	}
-	
 	void OnTranslateEnd() {
 		var beatmapActions = new List<BeatmapObjectModifiedAction>();
 		foreach (var d in queued) {
@@ -127,6 +164,43 @@ public class GizmoController {
 		BeatmapActionContainer.AddAction(
 			new ActionCollectionAction(beatmapActions, true, false, $"Moved ({queued.Count()}) objects with gizmo."),
 			true);
+	}
+	
+	void OnScaleMove(Vector3 delta, Axis axis) {
+		foreach (var d in queued) {
+			if (d.o is BaseObstacle o) {
+				var scale = new Vector3(
+					o.CustomSize?.AsArray?[0] ?? o.Width,
+					o.CustomSize?.AsArray?[1] ?? o.Height,
+					o.CustomSize?.AsArray?[2] ?? o.Duration * 100 * BeatSaberSongContainer.Instance.DifficultyData.NoteJumpMovementSpeed / BeatSaberSongContainer.Instance.Song.BeatsPerMinute);
+				var scale_orig = new Vector3(
+					((BaseObstacle)d.old).CustomSize?.AsArray?[0] ?? o.Width,
+					((BaseObstacle)d.old).CustomSize?.AsArray?[1] ?? o.Height,
+					((BaseObstacle)d.old).CustomSize?.AsArray?[2] ?? o.Duration * 100 * BeatSaberSongContainer.Instance.DifficultyData.NoteJumpMovementSpeed / BeatSaberSongContainer.Instance.Song.BeatsPerMinute);
+				// 100 = 60 * 5 / 3, which is the conversion scale for some reason
+				scale += Vector3.Scale(scale_orig, delta);
+				o.CustomSize = new JSONArray();
+				o.CustomSize[0] = scale.x;
+				o.CustomSize[1] = scale.y;
+				o.CustomSize[2] = scale.z;
+				d.con?.UpdateGridPosition();
+			}
+		}
+		scale_gizmo!.handles[axis].gameObject.transform.localPosition += delta;
+	}
+	void OnScaleEnd() {
+		var beatmapActions = new List<BeatmapObjectModifiedAction>();
+		foreach (var d in queued) {
+			d.con.Dragging = false;
+			beatmapActions.Add(new BeatmapObjectModifiedAction(d.o, d.o, d.old, $"Scaled a {d.o.ObjectType} with gizmo.", true));
+		}
+		BeatmapActionContainer.AddAction(
+			new ActionCollectionAction(beatmapActions, true, false, $"Scaled ({queued.Count()}) objects with gizmo."),
+			true);
+		
+		foreach (var handle in scale_gizmo!.handles) {
+			handle.Value.gameObject.transform.localPosition = AxisMovement.vectors[handle.Key];
+		}
 	}
 	
 	public struct DragData {

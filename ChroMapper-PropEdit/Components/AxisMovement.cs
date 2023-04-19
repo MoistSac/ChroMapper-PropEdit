@@ -13,7 +13,7 @@ public class AxisMovement : MonoBehaviour
 {
 	// onMove(delta)
 	public event Action? onDragBegin;
-	public event Action<Vector3>? onDragMove;
+	public event Action<Vector3, Axis>? onDragMove;
 	public event Action? onDragEnd;
 	
 	public Axis axis;
@@ -42,7 +42,7 @@ public class AxisMovement : MonoBehaviour
 		// Get with axis line and facing the camera
 		var cd = (Camera.main.transform.position - this.gameObject.transform.position);
 		// The axis part of the normal needs to be 0
-		_axisv = this.gameObject.transform.parent.rotation * normals[axis];
+		_axisv = this.gameObject.transform.parent.rotation * vectors[axis];
 		var normal = cd - Vector3.Project(cd, _axisv);
 		_plane = new Plane(normal, this.gameObject.transform.position);
 		if (axis_pos() is Vector3 pos) {
@@ -53,7 +53,7 @@ public class AxisMovement : MonoBehaviour
 	
 	void OnMouseDrag() {
 		if (axis_pos() is Vector3 pos) {
-			onDragMove?.Invoke(pos - _prev);
+			onDragMove?.Invoke(pos - _prev, axis);
 			_prev = pos;
 		}
 	}
@@ -77,7 +77,7 @@ public class AxisMovement : MonoBehaviour
 		typeof(CMInput.IPlacementControllersActions)
 	};
 	
-	private readonly Dictionary<Axis, Vector3> normals = new Dictionary<Axis, Vector3>() {
+	public static readonly Dictionary<Axis, Vector3> vectors = new Dictionary<Axis, Vector3>() {
 		{Axis.X, Vector3.right},
 		{Axis.Y, Vector3.up},
 		{Axis.Z, Vector3.forward}

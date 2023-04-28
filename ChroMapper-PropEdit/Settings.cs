@@ -9,6 +9,7 @@ public class Settings {
 	public static readonly string ShowChromaKey = "Chroma";
 	public static readonly string ShowNoodleKey = "Noodle";
 	public static readonly string SplitValue = "split_val";
+	public static readonly string GizmoPrecision = "gizmo_precision";
 	
 	public static JSONNode? Get(string name, JSONNode? d = null) {
 		var o = Data.GetNode(Settings.Instance.json, name);
@@ -26,6 +27,7 @@ public class Settings {
 	
 	public static void Reload() {
 		Settings._instance = new Settings();
+		Plugin.settings?.Refresh();
 	}
 	
 	public readonly string SETTINGS_FILE = UnityEngine.Application.persistentDataPath + "/PropEdit.json";

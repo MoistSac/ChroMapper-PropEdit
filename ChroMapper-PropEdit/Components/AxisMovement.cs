@@ -12,7 +12,7 @@ namespace ChroMapper_PropEdit.Components {
 public class AxisMovement : MonoBehaviour
 {
 	// onMove(delta)
-	public event Action? onDragBegin;
+	public event Action<Axis>? onDragBegin;
 	public event Action<Vector3, Axis>? onDragMove;
 	public event Action? onDragEnd;
 	
@@ -39,7 +39,7 @@ public class AxisMovement : MonoBehaviour
 	}
 	
 	void OnMouseDown() {
-		// Get with axis line and facing the camera
+		// Get a plane along axis line and facing the camera
 		var cd = (Camera.main.transform.position - this.gameObject.transform.position);
 		// The axis part of the normal needs to be 0
 		_axisv = this.gameObject.transform.parent.rotation * vectors[axis];
@@ -47,14 +47,13 @@ public class AxisMovement : MonoBehaviour
 		_plane = new Plane(normal, this.gameObject.transform.position);
 		if (axis_pos() is Vector3 pos) {
 			_prev = pos;
-			onDragBegin?.Invoke();
+			onDragBegin?.Invoke(axis);
 		}
 	}
 	
 	void OnMouseDrag() {
 		if (axis_pos() is Vector3 pos) {
 			onDragMove?.Invoke(pos - _prev, axis);
-			_prev = pos;
 		}
 	}
 	

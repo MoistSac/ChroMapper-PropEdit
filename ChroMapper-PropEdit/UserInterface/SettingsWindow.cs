@@ -19,10 +19,12 @@ public class SettingsController {
 	public GameObject? requirements_panel;
 	public GameObject? settings_panel;
 	public GameObject? current_panel;
+	public ScrollBox? scrollbox;
+	
 	public Toggle? chroma_enable;
 	public Toggle? noodle_enable;
 	public Toggle? split_value;
-	public ScrollBox? scrollbox;
+	public UITextInput? gizmo_precision;
 	
 	public Dictionary<string, UIDropdown> requirements = new Dictionary<string, UIDropdown>();
 	public Dictionary<string, Toggle> forced = new Dictionary<string, Toggle>();
@@ -77,6 +79,15 @@ public class SettingsController {
 				Settings.Set(Settings.SplitValue, v);
 				Plugin.main?.UpdateSelection(false);
 			});
+		}
+		{
+			var collapsible = UI.AddChild(panel, "Gizmos").AddComponent<Collapsible>().Init("Gizmos", true);
+			{
+				var container = UI.AddField(collapsible.panel!, "Gizmo Precision");
+				gizmo_precision = UI.AddParsed<int>(container, 2, (v) => {
+					Settings.Set(Settings.GizmoPrecision, v ?? 0);
+				});
+			}
 		}
 		
 		UI.AddField(panel, "");
@@ -207,14 +218,14 @@ public class SettingsController {
 		}, options, true);
 	}
 	
-	private void AddParsed<T>(string name, string path) where T : struct {
+	private UITextInput AddParsed<T>(string name, string path) where T : struct {
 		path = $"_settings.{prefix}.{path}";
 		var container = UI.AddField(current_panel!, name);
 		var node = Data.GetNode(BeatSaberSongContainer.Instance.DifficultyData.CustomData, path);
 		T? value = (node == null)
 			? null
 			: Data.CreateConvertFunc<JSONNode, T>()(node);
-		UI.AddParsed<T>(container, value, (v) => {
+		return UI.AddParsed<T>(container, value, (v) => {
 			if (v == null) {
 				Data.RemoveNode(BeatSaberSongContainer.Instance.DifficultyData.CustomData, path);
 			}
@@ -279,6 +290,7 @@ public class SettingsController {
 		chroma_enable!.isOn = Settings.Get(Settings.ShowChromaKey, true);
 		noodle_enable!.isOn = Settings.Get(Settings.ShowNoodleKey, true);
 		split_value!.isOn = Settings.Get(Settings.SplitValue, true);
+		gizmo_precision!.InputField.text = Settings.Get(Settings.GizmoPrecision, 2);
 		foreach (var r in requirements) {
 			r.Value.Dropdown.SetValueWithoutNotify((int)(GetReqCheck(r.Key)!.IsRequiredOrSuggested(BeatSaberSongContainer.Instance.DifficultyData, BeatSaberSongContainer.Instance.Map)));
 		}

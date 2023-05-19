@@ -9,12 +9,14 @@ namespace ChroMapper_PropEdit {
 public class Plugin {
 	public static MainWindow? main;
 	public static SettingsWindow? settings;
+	public static AnimationController? animations;
 	
 	[Init]
 	private void Init() {
 		SceneManager.sceneLoaded += SceneLoaded;
 		main = new MainWindow();
 		settings = new SettingsWindow();
+		animations = new AnimationController();
 	}
 	
 	private void SceneLoaded(Scene scene, LoadSceneMode mode) {
@@ -26,6 +28,7 @@ public class Plugin {
 			var mapEditorUI = Object.FindObjectOfType<MapEditorUI>();
 			main?.Init(mapEditorUI);
 			settings?.Init(mapEditorUI);
+			animations?.Init();
 		}
 		else {
 			main?.Disable();

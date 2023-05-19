@@ -90,8 +90,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnimationController.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="Components\AnimateLocalRotation.cs" />
     <Compile Include="Components\ArrayEditor.cs" />
     <Compile Include="Components\Clickable.cs" />
     <Compile Include="Components\Collapsible.cs" />
@@ -100,6 +102,7 @@
     <Compile Include="Components\ScrollBox.cs" />
     <Compile Include="Components\UpdateChecker.cs" />
     <Compile Include="Components\Window.cs" />
+    <Compile Include="Components\iAnimateComponent.cs" />
     <Compile Include="Enums\Events.cs" />
     <Compile Include="Enums\Map.cs" />
     <Compile Include="Enums\MapSettings.cs" />

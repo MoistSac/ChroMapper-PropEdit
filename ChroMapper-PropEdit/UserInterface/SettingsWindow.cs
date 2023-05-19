@@ -13,7 +13,7 @@ using SimpleJSON;
 
 namespace ChroMapper_PropEdit.UserInterface {
 
-public class SettingsController {
+public class SettingsWindow {
 	public Window? window;
 	public GameObject? panel;
 	public GameObject? requirements_panel;
@@ -309,7 +309,7 @@ public class SettingsController {
 		return requirementsAndSuggestions.FirstOrDefault((r) => r.Name == name);
 	}
 	
-	public SettingsController() {
+	public SettingsWindow() {
 		// Break into ChroMapper's house and grab the requirement check list via reflection
 		var req_type = typeof(RequirementCheck);
 		var ras = req_type.GetField("requirementsAndSuggestions", BindingFlags.Static | BindingFlags.NonPublic);

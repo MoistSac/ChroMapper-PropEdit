@@ -8,13 +8,13 @@ namespace ChroMapper_PropEdit {
 [Plugin("PropEdit")]
 public class Plugin {
 	public static MainWindow? main;
-	public static SettingsController? settings;
+	public static SettingsWindow? settings;
 	
 	[Init]
 	private void Init() {
 		SceneManager.sceneLoaded += SceneLoaded;
 		main = new MainWindow();
-		settings = new SettingsController();
+		settings = new SettingsWindow();
 	}
 	
 	private void SceneLoaded(Scene scene, LoadSceneMode mode) {

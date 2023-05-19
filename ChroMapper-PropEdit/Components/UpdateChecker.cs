@@ -22,6 +22,10 @@ public class UpdateChecker : MonoBehaviour {
 			
 			var json = JSON.Parse(request.downloadHandler.text);
 			
+			if (json == null) {
+				yield break;
+			}
+			
 			var current = typeof(UpdateChecker).Assembly.GetName().Version;
 			var latest = new Version(json[channel]["latest"]);
 			

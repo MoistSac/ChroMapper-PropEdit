@@ -1,9 +1,9 @@
 {
   "stable": {
-    "latest": "0.2.1.0"
+    "latest": "0.6.0.0"
   },
   "dev": {
-    "latest": "0.5.0.0"
+    "latest": "0.6.0.0"
   },
   "main": {
     "latest": "0.6.0.0"
